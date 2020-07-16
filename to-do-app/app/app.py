@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -17,22 +17,23 @@ class ToDo(db.Model):
         return f"<ToDo id: {self.id}, description: {self.description}>"
 
 
-# create db table(s) if they do not exist
+# create db table(s)
+# if they do not exist
 db.create_all()
+
+
+@app.route("/todos/create", methods=["POST"])
+def create():
+    todo_description = request.get_json().get("description")
+    new_todo = ToDo(description=todo_description)
+    db.session.add(new_todo)
+    db.session.commit()
+    return jsonify({"description": todo_description})
 
 
 @app.route("/")
 def index():
     return render_template("index.html", data=ToDo.query.all())
-
-
-@app.route("/todos/create", methods=["POST"])
-def create():
-    todo_description = request.form.get("description")
-    new_todo = ToDo(description=todo_description)
-    db.session.add(new_todo)
-    db.session.commit()
-    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":

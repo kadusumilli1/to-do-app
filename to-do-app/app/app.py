@@ -1,5 +1,6 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
+import sys
 
 app = Flask(__name__)
 # define database URI to connect to the db
@@ -24,11 +25,24 @@ db.create_all()
 
 @app.route("/todos/create", methods=["POST"])
 def create():
-    todo_description = request.get_json().get("description")
-    new_todo = ToDo(description=todo_description)
-    db.session.add(new_todo)
-    db.session.commit()
-    return jsonify({"description": todo_description})
+    error = False
+    try:
+        todo_description = request.get_json().get("description")
+        new_todo = ToDo(description=todo_description)
+        db.session.add(new_todo)
+        db.session.commit()
+    except:
+        error = True
+        db.session.rollback()
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+    if error:
+        # returns a HTTP error code
+        # in case of an error
+        abort(400)
+    else:
+        return jsonify({"description": todo_description})
 
 
 @app.route("/")
